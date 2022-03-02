@@ -28,8 +28,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -75,7 +75,7 @@ func (r *VSphereMachineIPAMReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	log.V(4).Info("reconceiling VSphereMachine")
 
-	var vSphereMachine v1alpha3.VSphereMachine
+	var vSphereMachine v1beta1.VSphereMachine
 	if err := r.Client.Get(ctx, req.NamespacedName, &vSphereMachine); err != nil {
 		// deleted objects somtimes still trigger reconciliation, we'll just ignore those.
 		if apierrors.IsNotFound(err) {
@@ -179,7 +179,7 @@ func (r *VSphereMachineIPAMReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (r *VSphereMachineIPAMReconciler) reconcileInterface(log logr.Logger, vSphereMachine *v1alpha3.VSphereMachine, machineName string, i interfaceConfig) (
+func (r *VSphereMachineIPAMReconciler) reconcileInterface(log logr.Logger, vSphereMachine *v1beta1.VSphereMachine, machineName string, i interfaceConfig) (
 	changed bool, err error) {
 	log = log.WithValues("subnet", i.subnet)
 	dev, devIdx := getDeviceByNetworkName(vSphereMachine.Spec.Network.Devices, i.networkName)
@@ -228,13 +228,13 @@ func (r *VSphereMachineIPAMReconciler) reconcileInterface(log logr.Logger, vSphe
 	return
 }
 
-func getDeviceByNetworkName(devices []v1alpha3.NetworkDeviceSpec, name string) (dev v1alpha3.NetworkDeviceSpec, index int) {
+func getDeviceByNetworkName(devices []v1beta1.NetworkDeviceSpec, name string) (dev v1beta1.NetworkDeviceSpec, index int) {
 	for i, d := range devices {
 		if d.NetworkName == name {
 			return d, i
 		}
 	}
-	return v1alpha3.NetworkDeviceSpec{}, -1
+	return v1beta1.NetworkDeviceSpec{}, -1
 }
 
 func getInterfaceFromAnnotations(annotations map[string]string, prefix string) (interfaceConfig, error) {
@@ -283,7 +283,7 @@ func (r *VSphereMachineIPAMReconciler) getInterfacesFromAnnotations(ctx context.
 	if !containsPrefix {
 		for _, ownerRef := range metadata.OwnerReferences {
 			if ownerRef.Kind == "Machine" {
-				machine := &capiv1alpha3.Machine{}
+				machine := &capiv1beta1.Machine{}
 				err := r.Get(ctx, types.NamespacedName{Namespace: metadata.GetNamespace(), Name: ownerRef.Name}, machine)
 				if err != nil {
 					return nil, err
@@ -329,6 +329,6 @@ func getOwnerMachineName(metadata v1.ObjectMeta) string {
 func (r *VSphereMachineIPAMReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// Uncomment the following line adding a pointer to an instance of the controlled resource as an argument
-		For(&v1alpha3.VSphereMachine{}).
+		For(&v1beta1.VSphereMachine{}).
 		Complete(r)
 }

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Build the manager binary
-FROM golang:1.15 as builder
+FROM golang:1.17 as builder
 
 ENV VERSION "v0.0.0-dev"
 

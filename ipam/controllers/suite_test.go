@@ -24,8 +24,8 @@ import (
 	"gitlab.devops.telekom.de/schiff/engine/schiff-operator.git/pkg/ipam/mock"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -72,9 +72,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = v1alpha3.AddToScheme(scheme.Scheme)
+	err = v1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).ToNot(HaveOccurred())
-	err = capiv1alpha3.AddToScheme(scheme.Scheme)
+	err = capiv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).ToNot(HaveOccurred())
 	// +kubebuilder:scaffold:scheme
 

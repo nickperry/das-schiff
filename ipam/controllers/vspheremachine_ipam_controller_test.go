@@ -22,8 +22,8 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api-provider-vsphere/api/v1alpha3"
-	capiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api-provider-vsphere/apis/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -58,7 +58,7 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 					annotationPrefix + dnsZoneParam:             DNSZone,
 					clusterNameLabel:                            ClusterName,
 				},
-				OwnerReferences: []v1.OwnerReference{{Name: MachineName, Kind: "Machine", APIVersion: "v1alpha3", UID: uid}},
+				OwnerReferences: []v1.OwnerReference{{Name: MachineName, Kind: "Machine", APIVersion: "v1beta1", UID: uid}},
 			}
 		}
 	)
@@ -68,20 +68,20 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	})
 
 	AfterEach(func() {
-		vSphereMachine := &v1alpha3.VSphereMachine{}
+		vSphereMachine := &v1beta1.VSphereMachine{}
 		err := k8sClient.Get(context.Background(), NamespacedName, vSphereMachine)
 		if err == nil || vSphereMachine.Name != "" {
 			vSphereMachine.Finalizers = []string{}
 			Expect(k8sClient.Update(context.Background(), vSphereMachine)).To(Succeed())
-			Expect(k8sClient.Delete(context.Background(), &v1alpha3.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
+			Expect(k8sClient.Delete(context.Background(), &v1beta1.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
 			Eventually(func() bool {
-				err := k8sClient.Get(context.Background(), NamespacedName, &v1alpha3.VSphereMachine{})
+				err := k8sClient.Get(context.Background(), NamespacedName, &v1beta1.VSphereMachine{})
 				return err != nil
 			}, timeout, interval).Should(BeTrue())
 		}
-		Expect(k8sClient.Delete(context.Background(), &capiv1alpha3.Machine{ObjectMeta: v1.ObjectMeta{Name: MachineName, Namespace: Namespace}})).To(Succeed())
+		Expect(k8sClient.Delete(context.Background(), &capiv1beta1.Machine{ObjectMeta: v1.ObjectMeta{Name: MachineName, Namespace: Namespace}})).To(Succeed())
 		Eventually(func() bool {
-			err := k8sClient.Get(context.Background(), NamespacedName, &capiv1alpha3.Machine{})
+			err := k8sClient.Get(context.Background(), NamespacedName, &capiv1beta1.Machine{})
 			return err != nil
 		}, timeout, interval).Should(BeTrue())
 	})
@@ -107,21 +107,21 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 					released = true
 				}
 			}
-			machine := &capiv1alpha3.Machine{
+			machine := &capiv1beta1.Machine{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      MachineName,
 					Namespace: Namespace,
 				},
-				Spec: capiv1alpha3.MachineSpec{
+				Spec: capiv1beta1.MachineSpec{
 					ClusterName: ClusterName,
 				},
 			}
 			Expect(k8sClient.Create(ctx, machine)).To(Succeed())
-			vSphereMachine := &v1alpha3.VSphereMachine{
+			vSphereMachine := &v1beta1.VSphereMachine{
 				ObjectMeta: getMeta(machine.UID),
-				Spec: v1alpha3.VSphereMachineSpec{
-					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
-						Network:  v1alpha3.NetworkSpec{Devices: []v1alpha3.NetworkDeviceSpec{{NetworkName: NetworkName}}},
+				Spec: v1beta1.VSphereMachineSpec{
+					VirtualMachineCloneSpec: v1beta1.VirtualMachineCloneSpec{
+						Network:  v1beta1.NetworkSpec{Devices: []v1beta1.NetworkDeviceSpec{{NetworkName: NetworkName}}},
 						Template: Template,
 					},
 				},
@@ -129,7 +129,7 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 			Expect(k8sClient.Create(ctx, vSphereMachine)).To(Succeed())
 
 			By("allocating an IP after creation")
-			createdMachine := &v1alpha3.VSphereMachine{}
+			createdMachine := &v1beta1.VSphereMachine{}
 			// wait for creation
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, NamespacedName, createdMachine)
@@ -142,10 +142,10 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 			Expect(allocated).To(BeTrue(), "should allocate the ip in ipam")
 
 			By("releasing the IP on deletion")
-			Expect(k8sClient.Delete(context.Background(), &v1alpha3.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
+			Expect(k8sClient.Delete(context.Background(), &v1beta1.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
 			// wait for deletion
 			Eventually(func() bool {
-				err := k8sClient.Get(context.Background(), NamespacedName, &v1alpha3.VSphereMachine{})
+				err := k8sClient.Get(context.Background(), NamespacedName, &v1beta1.VSphereMachine{})
 				if err != nil || false {
 					return true
 				}
@@ -160,27 +160,27 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 			ipamManager.Callback = func(t, _, _ string, _ *net.IPNet) {
 				called = true
 			}
-			machine := &capiv1alpha3.Machine{
+			machine := &capiv1beta1.Machine{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      MachineName,
 					Namespace: Namespace,
 				},
-				Spec: capiv1alpha3.MachineSpec{
+				Spec: capiv1beta1.MachineSpec{
 					ClusterName: ClusterName,
 				},
 			}
 			Expect(k8sClient.Create(ctx, machine)).To(Succeed())
-			vSphereMachine := &v1alpha3.VSphereMachine{
+			vSphereMachine := &v1beta1.VSphereMachine{
 				ObjectMeta: getMeta(machine.UID),
-				Spec: v1alpha3.VSphereMachineSpec{
-					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
-						Network:  v1alpha3.NetworkSpec{Devices: []v1alpha3.NetworkDeviceSpec{{DHCP4: true}}},
+				Spec: v1beta1.VSphereMachineSpec{
+					VirtualMachineCloneSpec: v1beta1.VirtualMachineCloneSpec{
+						Network:  v1beta1.NetworkSpec{Devices: []v1beta1.NetworkDeviceSpec{{DHCP4: true}}},
 						Template: Template,
 					},
 				},
 			}
 			Expect(k8sClient.Create(ctx, vSphereMachine)).To(Succeed())
-			createdMachine := &v1alpha3.VSphereMachine{}
+			createdMachine := &v1beta1.VSphereMachine{}
 			waitForObject(ctx, NamespacedName, createdMachine)
 			Consistently(func() (int, error) {
 				err := k8sClient.Get(ctx, NamespacedName, createdMachine)
@@ -206,7 +206,7 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 				}
 			}
 
-			machine := &capiv1alpha3.Machine{
+			machine := &capiv1beta1.Machine{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      MachineName,
 					Namespace: Namespace,
@@ -218,13 +218,13 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 						clusterNameLabel:                            ClusterName,
 					},
 				},
-				Spec: capiv1alpha3.MachineSpec{
+				Spec: capiv1beta1.MachineSpec{
 					ClusterName: ClusterName,
 				},
 			}
 			Expect(k8sClient.Create(ctx, machine)).To(Succeed())
 			// ctrl.Log.Info("machine created", "uid", machine.ObjectMeta.UID)
-			vmachine := &v1alpha3.VSphereMachine{
+			vmachine := &v1beta1.VSphereMachine{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      MachineName,
 					Namespace: Namespace,
@@ -232,18 +232,18 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 						clusterNameLabel: ClusterName,
 					},
 					OwnerReferences: []v1.OwnerReference{
-						{APIVersion: "v1alpha3", Kind: "Machine", Name: machine.ObjectMeta.Name, UID: machine.ObjectMeta.UID},
+						{APIVersion: "v1beta1", Kind: "Machine", Name: machine.ObjectMeta.Name, UID: machine.ObjectMeta.UID},
 					},
 				},
-				Spec: v1alpha3.VSphereMachineSpec{
-					VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
+				Spec: v1beta1.VSphereMachineSpec{
+					VirtualMachineCloneSpec: v1beta1.VirtualMachineCloneSpec{
 						Template: Template,
-						Network:  v1alpha3.NetworkSpec{Devices: []v1alpha3.NetworkDeviceSpec{{NetworkName: NetworkName}}},
+						Network:  v1beta1.NetworkSpec{Devices: []v1beta1.NetworkDeviceSpec{{NetworkName: NetworkName}}},
 					},
 				},
 			}
 			Expect(k8sClient.Create(ctx, vmachine)).To(Succeed())
-			createdMachine := &v1alpha3.VSphereMachine{}
+			createdMachine := &v1beta1.VSphereMachine{}
 			// wait for creation
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, NamespacedName, createdMachine)
@@ -272,7 +272,7 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	// 				released = append(released, subnet.String())
 	// 			}
 	// 		}
-	// 		machine := &capiv1alpha3.Machine{
+	// 		machine := &capiv1beta1.Machine{
 	// 			ObjectMeta: v1.ObjectMeta{
 	// 				Name:      MachineName,
 	// 				Namespace: Namespace,
@@ -284,12 +284,12 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	// 					annotationPrefix + dnsZoneParam:             DNSZone,
 	// 				},
 	// 			},
-	// 			Spec: capiv1alpha3.MachineSpec{
+	// 			Spec: capiv1beta1.MachineSpec{
 	// 				ClusterName: ClusterName,
 	// 			},
 	// 		}
 	// 		Expect(k8sClient.Create(ctx, machine)).To(Succeed())
-	// 		vSphereMachine := &v1alpha3.VSphereMachine{
+	// 		vSphereMachine := &v1beta1.VSphereMachine{
 	// 			ObjectMeta: v1.ObjectMeta{
 	// 				Name:      MachineName,
 	// 				Namespace: Namespace,
@@ -307,11 +307,11 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	// 					"ipam.schiff.telekom.de/1-DNSZone":             DNSZone,
 	// 					clusterNameLabel:                               ClusterName,
 	// 				},
-	// 				OwnerReferences: []v1.OwnerReference{v1.OwnerReference{Name: "test-owner", Kind: "Machine", APIVersion: "v1alpha3", UID: machine.UID}},
+	// 				OwnerReferences: []v1.OwnerReference{v1.OwnerReference{Name: "test-owner", Kind: "Machine", APIVersion: "v1beta1", UID: machine.UID}},
 	// 			},
-	// 			Spec: v1alpha3.VSphereMachineSpec{
-	// 				VirtualMachineCloneSpec: v1alpha3.VirtualMachineCloneSpec{
-	// 					Network: v1alpha3.NetworkSpec{Devices: []v1alpha3.NetworkDeviceSpec{
+	// 			Spec: v1beta1.VSphereMachineSpec{
+	// 				VirtualMachineCloneSpec: v1beta1.VirtualMachineCloneSpec{
+	// 					Network: v1beta1.NetworkSpec{Devices: []v1beta1.NetworkDeviceSpec{
 	// 						{NetworkName: NetworkName},
 	// 						{NetworkName: NetworkName + "2"},
 	// 					}},
@@ -322,7 +322,7 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	// 		Expect(k8sClient.Create(ctx, vSphereMachine)).To(Succeed())
 
 	// 		By("allocating IPs for all interfaces")
-	// 		createdMachine := &v1alpha3.VSphereMachine{}
+	// 		createdMachine := &v1beta1.VSphereMachine{}
 	// 		// wait for creation
 	// 		Eventually(func() bool {
 	// 			err := k8sClient.Get(ctx, NamespacedName, createdMachine)
@@ -352,10 +352,10 @@ var _ = Describe("VSphereMachine IPAM controller", func() {
 	// 		Expect(allocated).To(ContainElements([]string{TestSubnet.String(), "10.1.0.0/24"}), "should allocate the ip in ipam")
 
 	// 		By("releasing the IPs on deletion")
-	// 		Expect(k8sClient.Delete(context.Background(), &v1alpha3.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
+	// 		Expect(k8sClient.Delete(context.Background(), &v1beta1.VSphereMachine{ObjectMeta: getMeta("")})).To(Succeed())
 	// 		// wait for deletion
 	// 		Eventually(func() bool {
-	// 			err := k8sClient.Get(context.Background(), NamespacedName, &v1alpha3.VSphereMachine{})
+	// 			err := k8sClient.Get(context.Background(), NamespacedName, &v1beta1.VSphereMachine{})
 	// 			if err != nil || false {
 	// 				return true
 	// 			}
@@ -374,7 +374,7 @@ func waitForObject(ctx context.Context, key types.NamespacedName, obj client.Obj
 	}, timeout, interval).Should(BeTrue())
 }
 
-func checkNetworkDevices(devices []v1alpha3.NetworkDeviceSpec) bool {
+func checkNetworkDevices(devices []v1beta1.NetworkDeviceSpec) bool {
 	if len(devices) < 1 {
 		return false
 	}
